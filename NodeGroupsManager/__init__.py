@@ -1,5 +1,5 @@
 bl_info = {'name':"NodeGroupsManager", 'author':"ugorek",
-           'version':(3,0,0), 'blender':(4,1,1), 'created':"2024.05.29",
+           'version':(3,0,1), 'blender':(4,1,1), 'created':"2024.05.29",
            'warning':"", 'category':"Node",
            'tracker_url':"https://github.com/ugorek000/NodeGroupsManager/issues", 'wiki_url':""}
 #№№ as package
@@ -44,7 +44,7 @@ def DelNgOp(context, nameNg, *, isFastDel=False):
 
 dict_treeIcos = {"ShaderNodeTree":'NODE_MATERIAL', "GeometryNodeTree":'GEOMETRY_NODES', "CompositorNodeTree":'NODE_COMPOSITING', "TextureNodeTree":'NODE_TEXTURE'}
 
-class PanelNodeGroupManager(bpy.types.Panel):
+class PanelNodeGroupsManager(bpy.types.Panel):
     bl_idname = 'UNU_PT_NodeGroupsManager'
     bl_label = "NodeGroups Manager"
     bl_space_type = 'NODE_EDITOR'
@@ -56,15 +56,16 @@ class PanelNodeGroupManager(bpy.types.Panel):
     def draw(self, context):
         colLy = self.layout.column()
         prefs = Prefs()
+        isAllowDimHl1 = prefs.intAllowDimHl<1
         row = colLy.row(align=True)
         rowFilter = row.row(align=True)
         txt_filter = rowFilter.prop_and_get(prefs,'filter', text="", icon='SORTBYEXT')
-        rowFilter.active = not not txt_filter
+        rowFilter.active = (isAllowDimHl1)or(not not txt_filter)
         rowFilter.separator()
         rowFilter.separator()
         rowIsParse = row.row(align=True)
         rowIsParse.alignment = 'CENTER'
-        rowIsParse.active = False
+        rowIsParse.active = isAllowDimHl1
         isParsePrefixes = rowIsParse.prop_and_get(prefs,'isParsePrefixes')
         ##
         list_data = [ng for ng in bpy.data.node_groups if ng.bl_idname==context.space_data.tree_type]
@@ -133,19 +134,21 @@ class PanelNodeGroupManager(bpy.types.Panel):
         colList = colLy.column(align=True)
         isAllowAlertHl = prefs.isAllowAlertHl
         isAllowSelectHl = prefs.isAllowSelectHl
+        isAllowDimHl2 = prefs.intAllowDimHl<2
+        intStyleOrphans = prefs.intStyleOrphans
         patr = re.compile(txt_filter) if txt_filter else None
         list_ngPath = [pt.node_tree for pt in context.space_data.path]
         treeEdit = context.space_data.edit_tree
         soldTreeNdAc = getattr(ndAc,'node_tree', None) if (ndAc:=treeEdit.nodes.active)and(ndAc.select) else None
         set_selNdNg = set(nd.node_tree for nd in treeEdit.nodes if (nd.select)and(nd.type=='GROUP')and(nd.node_tree))
-        def LyDrawItem(where, ng, *, styleOrphans=1, styleSel=True, styleInPath=False):
+        def LyDrawItem(where, ng, *, styleOrphans=intStyleOrphans, styleSel=True, styleInPath=False):
             rowItem = where.row(align=True)
             if (not styleOrphans)and(ng.users.numerator==0):
                 rowItem.label(text="", icon='DRIVER_TRANSFORM')
             rowDel = rowItem.row(align=True)
             tgl = not not uu_ly.ProcConfirmAlert(ng)
             rowDel.operator(OpSimpleExec.bl_idname, text="", icon='TRASH' if tgl else 'X').exc = f"DelNgOp(context, {repr(ng.name)}, isFastDel=event.shift)"
-            rowDel.active = tgl
+            rowDel.active = (isAllowDimHl1)or(tgl)
             rowName = rowItem.row(align=True)
             rowName.prop(ng,'name', text="", icon=dict_treeIcos[ng.bl_idname])
             ##
@@ -154,9 +157,9 @@ class PanelNodeGroupManager(bpy.types.Panel):
             if styleOrphans==2:
                 row.alert = (isAllowAlertHl)and(tgl)
             else:
-                rowName.active = not tgl
+                rowName.active = (isAllowDimHl2)or(not tgl)
             row.prop(ng,'use_fake_user', text="", icon='DRIVER_TRANSFORM' if tgl else 'NONE')
-            row.active = not tgl
+            row.active = (isAllowDimHl2)or(not tgl)
             ##
             rowAdd = rowItem.row(align=True)
             if isAllowAlertHl:
@@ -167,7 +170,7 @@ class PanelNodeGroupManager(bpy.types.Panel):
             fit = (ng in set_selNdNg) if styleSel else (ng==soldTreeNdAc)
             rowAdd.operator(OpSimpleExec.bl_idname, text="", icon='TRIA_RIGHT', depress=(isAllowSelectHl)and(fit)).exc = f"AddNdNgOp(context, {repr(ng.name)})"
             rowAdd.scale_x = 1.75
-            rowAdd.active = (ng not in list_ngPath)or((styleInPath)and(ng==treeEdit))
+            rowAdd.active = (isAllowDimHl2)or(ng not in list_ngPath)or((styleInPath)and(ng==treeEdit))
         ##
         set_search = set(ng for ng in list_data if (not patr)or(re.search(patr, ng.name)))
         for li in list_collapsed if isParsePrefixes else list_data:
@@ -194,7 +197,7 @@ class PanelNodeGroupManager(bpy.types.Panel):
                     else:
                         rowName.separator()
                         rowName.label(text=ciUnf.name)
-                    rowUnf.active = not unf
+                    rowUnf.active = (isAllowDimHl2)or(not unf)
                     colUnfList = colBox.row().column(align=True)
                     if unf:
                         sco = 0
@@ -208,7 +211,7 @@ class PanelNodeGroupManager(bpy.types.Panel):
                         tgl = False
                         if any(ng for ng in list_ng if ng==treeEdit):
                             rowCou.alert = isAllowAlertHl
-                            rowCou.active = False
+                            rowCou.active = isAllowDimHl2
                         elif any(ng for ng in list_ng if ng==soldTreeNdAc):
                             rowCou.alert = isAllowAlertHl
                             tgl = True
@@ -281,33 +284,39 @@ class AddonPrefs(bpy.types.AddonPreferences):
     isCloseByDefault: bpy.props.BoolProperty(name="Default Closed", default=False)
     isAllowAlertHl: bpy.props.BoolProperty(name="Alert Highlighting", default=True)
     isAllowSelectHl: bpy.props.BoolProperty(name="Select Highlighting", default=True)
+    intAllowDimHl: bpy.props.IntProperty(name="Dim Highlighting", min=0, max=2, default=2)
+    intStyleOrphans: bpy.props.IntProperty(name="Style Orphans", min=0, max=2, default=1)
     def draw(self, context):
+        def LyLeftProp(where, who, prop):
+            row = where.row()
+            row.alignment = 'LEFT'
+            row.prop(who, prop)
         colMain = self.layout.column()
         box = uu_ly.LyAddHeaderedBox(colMain, "options", active=False)
         colProps = box.column()
         colProps.prop(self,'isParsePrefixes')
-        #colProps.separator()
-        row = colProps.row()
-        row.alignment = 'LEFT'
-        row.prop(self,'intOrderPanel')
-        colProps.prop(self,'isCloseByDefault', text="Panel Closed by Default") #Panel Default Closed
+        colProps.separator()
+        LyLeftProp(colProps, self,'intOrderPanel')
+        colProps.prop(self,'isCloseByDefault', text="Panel Closed by Default") #"Panel Default Closed"
         colProps.prop(self,'isAllowAlertHl')
         colProps.prop(self,'isAllowSelectHl')
+        LyLeftProp(colProps, self,'intAllowDimHl')
+        LyLeftProp(colProps, self,'intStyleOrphans')
 dict_classes[AddonPrefs] = True
 
 def register():
     for dk in dict_classes:
         bpy.utils.register_class(dk)
     prefs = Prefs()
-    PanelNodeGroupManager.bl_order = prefs.intOrderPanel
+    PanelNodeGroupsManager.bl_order = prefs.intOrderPanel
     if prefs.isCloseByDefault:
-        PanelNodeGroupManager.bl_options = {'DEFAULT_CLOSED'}
-    bpy.utils.register_class(PanelNodeGroupManager)
+        PanelNodeGroupsManager.bl_options = {'DEFAULT_CLOSED'}
+    bpy.utils.register_class(PanelNodeGroupsManager)
     ##
     prefs.filter = ""
     prefs.unfurils.clear()
 def unregister():
-    bpy.utils.unregister_class(PanelNodeGroupManager)
+    bpy.utils.unregister_class(PanelNodeGroupsManager)
     for dk in reversed(dict_classes):
         bpy.utils.unregister_class(dk)
 
