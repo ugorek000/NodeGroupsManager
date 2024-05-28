@@ -187,7 +187,7 @@ class PanelNodeGroupsManager(bpy.types.Panel):
                     unf = rowTgl.prop_and_get(ciUnf,'unf', text="", icon='DOWNARROW_HLT' if ciUnf.unf else 'RIGHTARROW', emboss=False)
                     rowTgl.scale_x = 2.0
                     rowUnf = rowRootUnf.row(align=True)
-                    rowCou = rowUnf.row(align=True)
+                    rowCou = rowUnf.row().row(align=True)
                     rowCou.alignment = 'CENTER'
                     len = length(list_ng)
                     rowCou.ui_units_x = 0.5*(0.5+length(str(len)))
