@@ -111,7 +111,6 @@ class PanelNodeGroupsManager(bpy.types.Panel):
                         sco += 1
                     else:
                         break
-                list_all = None
                 if sco>limitTrigger:
                     #Я не знаю, как наперёд узнать размер группы, чтобы иметь одинаковый результат с второй веткой limitTrigger;
                     # благодаря чему его можно будет переназвать на "intGroupThreshold".
@@ -126,7 +125,7 @@ class PanelNodeGroupsManager(bpy.types.Panel):
                             else:
                                 list_result.append(dv)
                     else:
-                        list_all = (list_all)or(RecrCollapseGet(dict_recr))
+                        list_all = RecrCollapseGet(dict_recr)
                         if length(list_all)>limitTrigger:
                             list_result.append( (txt_recr, list_all) )
                         else:
