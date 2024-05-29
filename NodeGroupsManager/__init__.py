@@ -1,5 +1,5 @@
 bl_info = {'name':"NodeGroupsManager", 'author':"ugorek",
-           'version':(3,0,1), 'blender':(4,1,1), 'created':"2024.05.29",
+           'version':(3,0,2), 'blender':(4,1,1), 'created':"2024.05.30",
            'warning':"", 'category':"Node",
            'tracker_url':"https://github.com/ugorek000/NodeGroupsManager/issues", 'wiki_url':""}
 #№№ as package
@@ -70,7 +70,6 @@ class PanelNodeGroupsManager(bpy.types.Panel):
         ##
         list_data = [ng for ng in bpy.data.node_groups if ng.bl_idname==context.space_data.tree_type]
         if isParsePrefixes:
-            limitCountToGroup = 2
             dict_data = {ng.name:ng for ng in list_data}
             LIsDict = lambda ess: ess.__class__ is dict
             def RecrParsePrefixes(dict_recr):
@@ -94,6 +93,7 @@ class PanelNodeGroupsManager(bpy.types.Panel):
                         di = tuple(dv.items())[0]
                         dict_result[dk+di[0]] = di[1]
                 return dict_result
+            limitTrigger = prefs.intGroupThresholdTrigger-1
             dict_hierarchy = RecrParsePrefixes(dict_data)
             def RecrParseHierarchy(txt_recr, dict_recr):
                 def RecrCollapseGet(dict_recr):
@@ -111,7 +111,10 @@ class PanelNodeGroupsManager(bpy.types.Panel):
                         sco += 1
                     else:
                         break
-                if sco>limitCountToGroup:
+                list_all = None
+                if sco>limitTrigger:
+                    #Я не знаю, как наперёд узнать размер группы, чтобы иметь одинаковый результат с второй веткой limitTrigger;
+                    # благодаря чему его можно будет переназвать на "intGroupThreshold".
                     list_result.append( (txt_recr, RecrCollapseGet(dict_recr)) )
                 else:
                     for dk in dict_recr.keys():
@@ -123,8 +126,8 @@ class PanelNodeGroupsManager(bpy.types.Panel):
                             else:
                                 list_result.append(dv)
                     else:
-                        list_all = RecrCollapseGet(dict_recr)
-                        if length(list_all)>limitCountToGroup:
+                        list_all = (list_all)or(RecrCollapseGet(dict_recr))
+                        if length(list_all)>limitTrigger:
                             list_result.append( (txt_recr, list_all) )
                         else:
                             list_result.extend(list_all)
@@ -193,7 +196,7 @@ class PanelNodeGroupsManager(bpy.types.Panel):
                     rowCou.ui_units_x = 0.5*(0.5+length(str(len)))
                     rowName = rowUnf.row(align=True)
                     if unf:
-                        rowName.prop(ciUnf,'nameRen', text="")
+                        rowName.prop(ciUnf,'nameRen', text="") #todo0 слить макеты кнопки и поле имени вместе.
                     else:
                         rowName.separator()
                         rowName.label(text=ciUnf.name)
@@ -279,9 +282,10 @@ class AddonPrefs(bpy.types.AddonPreferences):
     bl_idname = bl_info['name'] if __name__=="__main__" else __name__
     filter: bpy.props.StringProperty(name="Filter", default="(?i).*")
     isParsePrefixes: bpy.props.BoolProperty(name="Parse prefixes", default=True)
+    intGroupThresholdTrigger: bpy.props.IntProperty(name="Threshold trigger", min=0, soft_min=3, soft_max=10, default=3)
     unfurils: bpy.props.CollectionProperty(type=Unfuril)
-    intOrderPanel: bpy.props.IntProperty(name="Panel Order", default=2)
     isCloseByDefault: bpy.props.BoolProperty(name="Default Closed", default=False)
+    intOrderPanel: bpy.props.IntProperty(name="Panel Order", default=2)
     isAllowAlertHl: bpy.props.BoolProperty(name="Alert Highlighting", default=True)
     isAllowSelectHl: bpy.props.BoolProperty(name="Select Highlighting", default=True)
     intAllowDimHl: bpy.props.IntProperty(name="Dim Highlighting", min=0, max=2, default=2)
@@ -289,15 +293,19 @@ class AddonPrefs(bpy.types.AddonPreferences):
     def draw(self, context):
         def LyLeftProp(where, who, prop):
             row = where.row()
-            row.alignment = 'LEFT'
+            #row.alignment = 'LEFT'
             row.prop(who, prop)
         colMain = self.layout.column()
         box = uu_ly.LyAddHeaderedBox(colMain, "options", active=False)
         colProps = box.column()
         colProps.prop(self,'isParsePrefixes')
+        row = colProps.row()
+        LyLeftProp(row, self,'intGroupThresholdTrigger')
+        row.active = (self.isParsePrefixes)and(self.intGroupThresholdTrigger>2)
         colProps.separator()
-        LyLeftProp(colProps, self,'intOrderPanel')
         colProps.prop(self,'isCloseByDefault', text="Panel Closed by Default") #"Panel Default Closed"
+        LyLeftProp(colProps, self,'intOrderPanel')
+        colProps.separator()
         colProps.prop(self,'isAllowAlertHl')
         colProps.prop(self,'isAllowSelectHl')
         LyLeftProp(colProps, self,'intAllowDimHl')
