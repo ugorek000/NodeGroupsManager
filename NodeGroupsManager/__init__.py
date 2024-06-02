@@ -1,5 +1,5 @@
 bl_info = {'name':"NodeGroupsManager", 'author':"ugorek",
-           'version':(3,0,2), 'blender':(4,1,1), 'created':"2024.05.30",
+           'version':(3,0,2), 'blender':(4,1,1), 'created':"2024.06.02",
            'warning':"", 'category':"Node",
            'tracker_url':"https://github.com/ugorek000/NodeGroupsManager/issues", 'wiki_url':""}
 #№№ as package
@@ -17,14 +17,14 @@ import uu_ly
 dict_classes = {}
 
 class OpNone(bpy.types.Operator):
-    bl_idname = 'unu.none'
+    bl_idname = 'ngm.none'
     bl_label = "OpNone"
     def execute(self, context):
         return {'FINISHED'}
 dict_classes[OpNone] = True
 
 class OpSimpleExec(bpy.types.Operator):
-    bl_idname = 'unu.simple_exec'
+    bl_idname = 'ngm.simple_exec'
     bl_label = "OpSimpleExec"
     bl_options = {'UNDO'}
     exc: bpy.props.StringProperty(name="Exec", default="")
@@ -45,7 +45,7 @@ def DelNgOp(context, nameNg, *, isFastDel=False):
 dict_treeIcos = {"ShaderNodeTree":'NODE_MATERIAL', "GeometryNodeTree":'GEOMETRY_NODES', "CompositorNodeTree":'NODE_COMPOSITING', "TextureNodeTree":'NODE_TEXTURE'}
 
 class PanelNodeGroupsManager(bpy.types.Panel):
-    bl_idname = 'UNU_PT_NodeGroupsManager'
+    bl_idname = 'NGM_PT_NodeGroupsManager'
     bl_label = "NodeGroups Manager"
     bl_space_type = 'NODE_EDITOR'
     bl_region_type = 'TOOLS'
