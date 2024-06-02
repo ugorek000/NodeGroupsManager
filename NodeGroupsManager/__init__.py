@@ -1,5 +1,5 @@
 bl_info = {'name':"NodeGroupsManager", 'author':"ugorek",
-           'version':(3,0,2), 'blender':(4,1,1), 'created':"2024.06.02",
+           'version':(3,0,2), 'blender':(4,1,1), 'created':"2024.05.30",
            'warning':"", 'category':"Node",
            'tracker_url':"https://github.com/ugorek000/NodeGroupsManager/issues", 'wiki_url':""}
 #№№ as package
